@@ -84,7 +84,7 @@ def parseIni(iniFilePath, fileLookup):
 
             includePath = m.group(1)
 
-            fileLookup.paths.appendFile(includePath)
+            fileLookup.paths.append(includePath)
 
 
 def main(argv):
