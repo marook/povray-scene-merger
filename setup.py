@@ -46,8 +46,8 @@ testdir = pjoin(srcdir, 'test')
 
 assert os.path.isdir(srcdir)
 assert os.path.isdir(bindir)
-assert os.path.isdir(moddir)
-assert os.path.isdir(testdir)
+#assert os.path.isdir(moddir)
+#assert os.path.isdir(testdir)
 
 class Report(object):
 
@@ -244,5 +244,5 @@ setup(
     ],
     scripts = [pjoin(bindir, 'povray_scene_merger')],
     packages = [],
-    package_dir = {'': moddir},
+    #package_dir = {'': moddir},
 )
