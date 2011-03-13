@@ -18,8 +18,93 @@
 # along with povray-scene-merger.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import os.path
+import re
+
+class FileLookup(object):
+
+    def __init__(self):
+        self.paths = []
+
+    def findFile(self, relPath):
+        assert not os.path.isabs(relPath)
+
+        for p in self.paths:
+            path = os.path.join(p, relPath)
+
+            if os.path.exists(path):
+                return path
+
+        return None
+
+class IncludeParser(object):
+
+    def __init__(self):
+        self.pattern = re.compile('^[\s]*#[\s]*include[\s]+"([^"]*)"[\s]+$')
+
+    def parseInclude(self, line):
+        m = self.pattern.match(line)
+
+        if not m:
+            return None
+
+        return m.group(1)
+
+class FileAppender(object):
+
+    def __init__(self, fileLookup, includeParser):
+        self.fileLookup = fileLookup
+        self.includeParser = includeParser
+
+    def appendFile(self, fout, relFilePath):
+        filePath = self.fileLookup.findFile(relFilePath)
+
+        if filePath is None:
+            raise Exception('Can\'t find path %s' % relFilePath)
+
+        with open(filePath, 'r') as fin:
+            for line in fin:
+                includePath = self.includeParser.parseInclude(line)
+
+                if includePath is None:
+                    fout.write(line)
+                else:
+                    fout.write('\n// include %s\n' % includePath)
+                    self.appendFile(fout, includePath)
+
+def parseIni(iniFilePath, fileLookup):
+    libraryPathPattern = re.compile('^[\s]*Library_Path[\s]*=(.*)$')
+
+    with open(iniFilePath, 'r') as f:
+        for line in f:
+            m = libraryPathPattern.match(line)
+
+            if not m:
+                continue
+
+            includePath = m.group(1)
+
+            fileLookup.paths.appendFile(includePath)
+
+
 def main(argv):
-    pass
+    app, inputIni, inputScene, outputScene = argv
+
+    if os.path.exists(outputScene):
+        raise Exception('output scene path already exists: %s' % outputScene)
+
+    includeParser = IncludeParser()
+
+    fileLookup = FileLookup()
+    fileLookup.paths.append('.')
+    fileLookup.paths.append('/usr/share/povray/include')
+
+    parseIni(inputIni, fileLookup)
+
+    fileAppender = FileAppender(fileLookup, includeParser)
+
+    with open(outputScene, 'w') as f:
+        fileAppender.appendFile(f, inputScene)
 
 if __name__ == '__main__':
     import sys
